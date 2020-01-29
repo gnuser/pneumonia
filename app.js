@@ -9,6 +9,11 @@ function initVirusMap() {
   document.getElementById("title").innerHTML +=
     "（最后更新于 " + LAST_UPDATE + "）";
 
+  document.getElementById("mycity").innerHTML =
+    "您所在城市: " + getMyCityData();
+  document.getElementById("wuhan").innerHTML =
+     getCityData(420100);
+
   map = new AMap.Map("container", {
     zoom: window.screen.width <= 600 ? 3 : 4,
     center: [104.5, 38.5],
@@ -209,6 +214,21 @@ function clickHander(ev) {
 
 function initClickHandler() {
   map.on("click", clickHander);
+}
+
+function getCityData(cityCode) {
+  cityData = DATA[cityCode];
+  if(cityData) {
+    return cityData['cityName'] + " 确诊: " + cityData['confirmedCount'] +
+      ", 治愈: " + cityData['healCount'];
+  } else {
+    return "";
+  }
+}
+
+function getMyCityData() {
+    var cityCode=returnCitySN.cid;
+    return getCityData(cityCode);
 }
 
 document.addEventListener("DOMContentLoaded", initVirusMap);

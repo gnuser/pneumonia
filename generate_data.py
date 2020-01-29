@@ -69,6 +69,8 @@ def normalize_city_name(dxy_province_name, dxy_city_name):
 def get_confirmed_count_dxy():
     confirmed_count = defaultdict(int)
     suspected_count = defaultdict(int)
+    dead_count = defaultdict(int)
+    heal_count = defaultdict(int)
     for p in load_dxy_data():
         dxy_province_name = p['provinceName']
         if dxy_province_name in ['香港', '澳门', '台湾']:
@@ -76,6 +78,9 @@ def get_confirmed_count_dxy():
         if dxy_province_name in ['北京市', '上海市', '天津市']:
             code = amap_city_to_code[dxy_province_name]
             confirmed_count[code] = p['confirmedCount']
+            suspected_count[code] = p['suspectedCount']
+            dead_count[code] = p["deadCount"]
+            heal_count[code] = p["curedCount"]
             continue
         for c in p["cities"]:
             dxy_city_name = c["cityName"]
@@ -85,12 +90,17 @@ def get_confirmed_count_dxy():
                 # 丁香园有重复计算，县级市和地级市重复，如满洲里。因此用累加。TODO 是不是该累加？
                 code = amap_city_to_code[normalized_name]
                 confirmed_count[code] += c["confirmedCount"]
-    return confirmed_count, suspected_count
+                suspected_count[code] += c['suspectedCount']
+                dead_count[code] += c["deadCount"]
+                heal_count[code] += c["curedCount"]
+    return confirmed_count, suspected_count, dead_count, heal_count
 
 
 def get_confirmed_count_tx():
     confirmed_count = defaultdict(int)
     suspected_count = defaultdict(int)
+    dead_count = defaultdict(int)
+    heal_count = defaultdict(int)
     for item in load_tx_data():
         if item['country'] != '中国':
             continue
@@ -101,13 +111,17 @@ def get_confirmed_count_tx():
             code = amap_city_to_code[province_name]
             confirmed_count[code] += item['confirm']
             suspected_count[code] += item['suspect']
+            dead_count[code] += item["dead"]
+            heal_count[code] += item["heal"]
             continue
         normalized_name = normalize_city_name(item['area'], item['city'])
         if normalized_name != '':
             code = amap_city_to_code[normalized_name]
             confirmed_count[code] += item["confirm"]
             suspected_count[code] += item["suspect"]
-    return confirmed_count, suspected_count
+            dead_count[code] += item["dead"]
+            heal_count[code] += item["heal"]
+    return confirmed_count, suspected_count, dead_count, heal_count
 
 
 def count_to_color(confirm, suspect):
@@ -135,15 +149,25 @@ def write_result(result):
 
 
 def main():
-    confirmed_count, suspected_count = get_confirmed_count_tx()
+    confirmed_count, suspected_count, dead_count, heal_count = get_confirmed_count_tx()
     result = {}
+    total = { 'confirmedCount': 0, 'suspectCount':0, 'deadCount':0, 'healCount': 0}
     for code in amap_code_to_city:
         # 现在数据源的疑似都是 0 了
         result[code] = {'confirmedCount': confirmed_count[code],
+                        'suspectCount': suspected_count[code],
+                        'deadCount': dead_count[code],
+                        'healCount': heal_count[code],
                         'cityName': amap_code_to_city[code],
                         'color': count_to_color(confirmed_count[code], suspected_count[code])}
-    write_result(result)
+        total['confirmedCount'] += confirmed_count[code];
+        total['suspectCount'] += suspected_count[code];
+        total['deadCount'] += dead_count[code];
+        total['healCount'] += heal_count[code];
+    result['total'] = total;
+    write_result(result);
 
 
 if __name__ == '__main__':
     main()
+    # print(load_dxy_data())
